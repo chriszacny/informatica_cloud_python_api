@@ -1,8 +1,13 @@
 import logging
-import informatica_rest_api_gateway_test
 import requests
 import abc
 import standard_python_app
+import json
+from module_resources import DataFieldnameStrings
+from module_resources import GeneralConstants
+
+
+API_URL_PART = '/api/v2'
 
 
 class Payload(object):
@@ -16,17 +21,16 @@ class InformaticaJobStates(object):
     Running = 2
 
 
-class InformaticaJobRunStates(object):
-    Success = 1
-    CompleteWithErrors = 2
-    Fail = 3
-
-
 class JobStatus(object):
-    def __init__(self, job_id, last_result, current_state):
-        self.job_id = job_id
-        self.last_result = last_result
-        self.current_state = current_state
+    def __init__(self):
+        self.job_id = None
+        self.current_state = None
+
+
+class LoginData(object):
+    def __init__(self):
+        self.login_session_id = None
+        self.login_server_url = None
 
 
 class Response(object):
@@ -54,101 +58,189 @@ class StopJobError(StandardError):
     pass
 
 
-class GetJobStatusesError(StandardError):
+class GetJobRunStatusesError(StandardError):
     pass
 
 
-class JobStatusResponse(Response):
+class LoginResponse(Response):
     def __init__(self):
-        super(JobStatusResponse, self).__init__()
-        self.job_status = None
+        super(LoginResponse, self).__init__()
+        self.login_data = LoginData()
+
+
+class JobRunStatusResponse(Response):
+    def __init__(self):
+        super(JobRunStatusResponse, self).__init__()
+        self.job_status = JobStatus()
 
 
 class BaseStrategy(object):
-    def request_template_algorithm(self, data):
-        payload = self._formulate_payload(data)
+    def __init__(self, data):
+        self.data = data
+
+    def request_template_algorithm(self):
+        payload = self._formulate_payload()
         requests_response = self._do_http_request(payload)
-        return self._process_response(requests_response)
+        return self._process_requests_response(requests_response)
 
     @abc.abstractmethod
-    def _formulate_payload(self, data):
+    def _get_fully_constructed_url(self):
+        pass
+
+    @abc.abstractmethod
+    def _formulate_payload(self):
         pass
 
     @abc.abstractmethod
     def _do_http_request(self, payload):
         pass
 
-    @abc.abstractmethod
-    def _process_response(self, requests_response):
-        pass
+    def _process_requests_response(self, requests_response):
+        if requests_response.status_code == GeneralConstants.HttpStatusOK:
+            to_return = Response()
+            to_return.response_ok = True
+            return to_return
+        else:
+            to_return = Response()
+            to_return.response_ok = False
+            return to_return
 
 
 class LoginStrategy(BaseStrategy):
-    def _formulate_payload(self, data):
+    def __init__(self, data):
+        super(LoginStrategy, self).__init__(data)
+        self.uri = '/user/login'
+
+    def _formulate_payload(self):
         payload = Payload()
-        payload.payload_body = {'username': data['username'], 'password': data['password'], '@type': 'login'}
+        payload.payload_body = {DataFieldnameStrings.UserName: self.data[DataFieldnameStrings.UserName], DataFieldnameStrings.Password: self.data[DataFieldnameStrings.Password], '@type': 'login'}
         payload.headers = {'content-type': 'application/json', 'Accept': 'application/json'}
         return payload
+
+    def _get_fully_constructed_url(self):
+        return '{}{}{}'.format(self.data[DataFieldnameStrings.LoginEndpoint], API_URL_PART, self.uri)
 
     def _do_http_request(self, payload):
         raise NotImplementedError
 
-    def _process_response(self, requests_response):
-        raise NotImplementedError
+    def _process_requests_response(self, requests_response):
+        if requests_response.status_code == GeneralConstants.HttpStatusOK:
+            return self._process_response_json(requests_response.json())
+        else:
+            to_return = LoginResponse()
+            to_return.response_ok = False
+            return to_return
+
+    def _process_response_json(self, requests_response_jsonified):
+        to_return = LoginResponse()
+        to_return.response_ok = True
+        to_return.login_data.login_server_url = requests_response_jsonified['serverUrl']
+        to_return.login_data.login_session_id = requests_response_jsonified['icSessionId']
+        return to_return
 
 
 class LogoutStrategy(BaseStrategy):
-    def _formulate_payload(self, data):
+    def __init__(self, data):
+        super(LogoutStrategy, self).__init__(data)
+        self.uri = '/user/logoutall'
+
+    def _formulate_payload(self):
         payload = Payload()
-        payload.payload_body = {'username': data['username'], 'password': data['password'], '@type': 'logout'}
+        payload.payload_body = {DataFieldnameStrings.UserName: self.data[DataFieldnameStrings.UserName], DataFieldnameStrings.Password: self.data[DataFieldnameStrings.Password], '@type': 'logout'}
         payload.headers = {'content-type': 'application/json', 'Accept': 'application/json'}
         return payload
 
-    def _do_http_request(self, payload):
-        raise NotImplementedError
+    def _get_fully_constructed_url(self):
+        return '{}{}{}'.format(self.data[DataFieldnameStrings.LoginEndpoint], API_URL_PART, self.uri)
 
-    def _process_response(self, requests_response):
+    def _do_http_request(self, payload):
         raise NotImplementedError
 
 
 class StartJobStrategy(BaseStrategy):
-    def _formulate_payload(self, data):
-        raise NotImplementedError
+    def __init__(self, data):
+        super(StartJobStrategy, self).__init__(data)
+        self.uri = '/job'
+
+    def _formulate_payload(self):
+        payload = Payload()
+        taskType = GeneralConstants.DefaultTaskType
+        if DataFieldnameStrings.TaskType in self.data:
+            taskType = self.data[DataFieldnameStrings.TaskType]
+        payload.payload_body = {DataFieldnameStrings.TaskId: self.data[DataFieldnameStrings.TaskId], DataFieldnameStrings.TaskType: taskType}
+        payload.headers = {'Accept': 'application/json', DataFieldnameStrings.ICSessionId: self.data[DataFieldnameStrings.ICSessionId]}
+        return payload
+
+    def _get_fully_constructed_url(self):
+        return '{}{}{}'.format(self.data[DataFieldnameStrings.ServerUrl], API_URL_PART, self.uri)
 
     def _do_http_request(self, payload):
-        raise NotImplementedError
-
-    def _process_response(self, requests_response):
         raise NotImplementedError
 
 
 class StopJobStrategy(BaseStrategy):
-    def _formulate_payload(self, data):
-        raise NotImplementedError
+    def __init__(self, data):
+        super(StopJobStrategy, self).__init__(data)
+        self.uri = '/job/stop'
+
+    def _formulate_payload(self):
+        payload = Payload()
+        taskType = GeneralConstants.DefaultTaskType
+        if DataFieldnameStrings.TaskType in self.data:
+            taskType = self.data[DataFieldnameStrings.TaskType]
+        payload.payload_body = {DataFieldnameStrings.TaskId: self.data[DataFieldnameStrings.TaskId], DataFieldnameStrings.TaskType: taskType}
+        payload.headers = {'Accept': 'application/json', DataFieldnameStrings.ICSessionId: self.data[DataFieldnameStrings.ICSessionId]}
+        return payload
+
+    def _get_fully_constructed_url(self):
+        return '{}{}{}'.format(self.data[DataFieldnameStrings.ServerUrl], API_URL_PART, self.uri)
 
     def _do_http_request(self, payload):
         raise NotImplementedError
 
-    def _process_response(self, requests_response):
-        raise NotImplementedError
 
+class GetJobRunStatusStrategy(BaseStrategy):
+    def __init__(self, data):
+        super(GetJobRunStatusStrategy, self).__init__(data)
+        self.uri = '/activity/activityMonitor'
 
-class GetJobStatusStrategy(BaseStrategy):
-    def _formulate_payload(self, data):
-        raise NotImplementedError
+    def _formulate_payload(self):
+        payload = Payload()
+        payload.payload_body = {}
+        payload.headers = {'Accept': 'application/json', DataFieldnameStrings.ICSessionId: self.data[DataFieldnameStrings.ICSessionId]}
+        return payload
+
+    def _get_fully_constructed_url(self):
+        return '{}{}{}'.format(self.data[DataFieldnameStrings.ServerUrl], API_URL_PART, self.uri)
 
     def _do_http_request(self, payload):
         raise NotImplementedError
 
-    def _process_response(self, requests_response):
-        raise NotImplementedError
+    def _process_requests_response(self, requests_response):
+        if requests_response.status_code == GeneralConstants.HttpStatusOK:
+            return self._process_response_json(requests_response.json())
+        else:
+            to_return = JobRunStatusResponse()
+            to_return.response_ok = False
+            return to_return
+
+    def _process_response_json(self, requests_response_jsonified):
+        to_return = JobRunStatusResponse()
+        to_return.response_ok = True
+        task_id_to_find = self.data[DataFieldnameStrings.TaskId]
+        to_return.job_status.job_id = task_id_to_find
+        to_return.job_status.current_state = InformaticaJobStates.Stopped
+        for activity_monitor_entry in requests_response_jsonified:
+            if activity_monitor_entry[DataFieldnameStrings.TaskId] == task_id_to_find and (activity_monitor_entry['executionState'] == 'RUNNING' or activity_monitor_entry['executionState'] == 'INITIALIZED' or activity_monitor_entry['executionState'] == 'STOPPING'):
+                to_return.job_status.current_state = InformaticaJobStates.Running
+        return to_return
 
 
 class InformaticaRestApiGateway(object):
-    def __init__(self, username, password, endpoint):
+    def __init__(self, username, password, login_endpoint):
         self.username = username
         self.password = password
-        self.endpoint = endpoint
+        self.login_endpoint = login_endpoint
         self.login_session_id = None
         self.login_server_url = None
         self.is_connected = False
@@ -157,11 +249,11 @@ class InformaticaRestApiGateway(object):
         if not self.is_connected:
             raise LoginRequiredError()
 
-    def _send_informatica_request(self, data, strategy):
-        return strategy.request_template_algorithm(data)
+    def _send_informatica_request(self, strategy):
+        return strategy.request_template_algorithm()
 
     def connect(self):
-        response = self._send_informatica_request({'username': self.username, 'password': self.password, 'endpoint': self.endpoint}, LoginStrategy())
+        response = self._send_informatica_request(LoginStrategy({DataFieldnameStrings.UserName: self.username, DataFieldnameStrings.Password: self.password, DataFieldnameStrings.LoginEndpoint: self.login_endpoint}))
         if response.response_ok is True:
             self.is_connected = True
             self.login_session_id = response.login_data.login_session_id
@@ -171,7 +263,7 @@ class InformaticaRestApiGateway(object):
 
     def close_connection(self):
         self._verify_connected()
-        response = self._send_informatica_request({'username': self.username, 'password': self.password, 'endpoint': self.endpoint}, LogoutStrategy())
+        response = self._send_informatica_request(LogoutStrategy({DataFieldnameStrings.UserName: self.username, DataFieldnameStrings.Password: self.password, DataFieldnameStrings.LoginEndpoint: self.login_endpoint}))
         if response.response_ok is True:
             self.is_connected = False
             self.login_session_id = None
@@ -181,7 +273,7 @@ class InformaticaRestApiGateway(object):
 
     def start_job(self, job_id):
         self._verify_connected()
-        response = self._send_informatica_request({'session_id': self.login_session_id, 'server_url': self.login_server_url, 'job_id': job_id}, StartJobStrategy())
+        response = self._send_informatica_request(StartJobStrategy({DataFieldnameStrings.SessionId: self.login_session_id, DataFieldnameStrings.ServerUrl: self.login_server_url, DataFieldnameStrings.TaskId: job_id}))
         if response.response_ok is True:
             return True
         else:
@@ -189,19 +281,19 @@ class InformaticaRestApiGateway(object):
 
     def stop_job(self, job_id):
         self._verify_connected()
-        response = self._send_informatica_request({'session_id': self.login_session_id, 'server_url': self.login_server_url, 'job_id': job_id}, StopJobStrategy())
+        response = self._send_informatica_request(StopJobStrategy({DataFieldnameStrings.SessionId: self.login_session_id, DataFieldnameStrings.ServerUrl: self.login_server_url, DataFieldnameStrings.TaskId: job_id}))
         if response.response_ok is True:
             return True
         else:
             raise StopJobError()
 
-    def get_job_status(self, job_id):
+    def get_job_run_status(self, job_id):
         self._verify_connected()
-        response = self._send_informatica_request({'session_id': self.login_session_id, 'server_url': self.login_server_url, 'job_id': job_id}, GetJobStatusStrategy())
+        response = self._send_informatica_request(GetJobRunStatusStrategy({DataFieldnameStrings.SessionId: self.login_session_id, DataFieldnameStrings.ServerUrl: self.login_server_url, DataFieldnameStrings.TaskId: job_id}))
         if response.response_ok is True:
             return response.job_status
         else:
-            raise GetJobStatusesError()
+            raise GetJobRunStatusesError()
 
 
 class InformaticaRestApiGatewayTesterProgramCommandLineArgs(standard_python_app.CommandLineArgs):
@@ -234,9 +326,6 @@ class InformaticaRestApiGatewayTesterProgram(standard_python_app.StandardPythonA
 
     def instantiate_command_line_args(self):
         return InformaticaRestApiGatewayTesterProgramCommandLineArgs()
-
-    def get_test_case_class(self):
-        return informatica_rest_api_gateway_test.InformaticaRestAccessTest
 
 
 if __name__ == '__main__':

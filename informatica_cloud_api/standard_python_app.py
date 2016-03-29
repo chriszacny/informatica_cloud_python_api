@@ -30,12 +30,8 @@ class CommandLineArgs(object):
     def has_required_command_line_arguments(self):
         return False
 
-    def add_general_arguments(self):
-        self.parser.add_argument("-t", "--test", action='store_true', help='Specify this flag to run tests for the program.', default=False)
-
     def get(self):
         self.parser = argparse.ArgumentParser(description=self.get_program_description())
-        self.add_general_arguments()
         self.add_program_specific_arguments()
         self.parsed_arguments = self.parser.parse_args()
         self.set_parsed_args_on_class()
@@ -63,15 +59,7 @@ class StandardPythonApp(object):
     def instantiate_command_line_args(self):
         pass
 
-    @abc.abstractmethod
-    def get_test_case_class(self):
-        pass
-
     def bootstrapper(self):
-        if self.command_line_args.parsed_arguments.test is True:
-            runner = TextTestRunner(verbosity=2)
-            runner.run(unittest.makeSuite(self.get_test_case_class()))
-        else:
-            self.execute()
+        self.execute()
 
 
