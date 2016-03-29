@@ -82,7 +82,7 @@ class InformaticaRestAccessStrategyMethodTests(unittest.TestCase):
         expected_response = informatica_rest_api_gateway.JobRunStatusResponse()
         expected_response.response_ok = True
         expected_response.job_status.job_id = '1234'
-        expected_response.job_status.current_job_execution_state = informatica_rest_api_gateway.InformaticaJobExecutionStates.Stopped
+        expected_response.job_status.current_job_execution_state = informatica_rest_api_gateway.InformaticaJobExecutionStates.Completed
 
         json_test_data = []
 

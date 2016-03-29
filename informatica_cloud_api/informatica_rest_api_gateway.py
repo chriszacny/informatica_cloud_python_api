@@ -17,10 +17,11 @@ class Payload(object):
 
 
 class InformaticaJobExecutionStates(object):
-    Stopped = 'STOPPED'
+    Completed = 'COMPLETED'
     Running = 'RUNNING'
     Initialized = 'INITIALIZED'
     Stopping = 'STOPPING'
+    Failed = 'FAILED'
 
 
 class JobStatus(object):
@@ -231,7 +232,7 @@ class GetJobRunStatusStrategy(BaseStrategy):
         to_return.response_ok = True
         task_id_to_find = self.data[DataFieldnameStrings.TaskId]
         to_return.job_status.job_id = task_id_to_find
-        to_return.job_status.current_job_execution_state = InformaticaJobExecutionStates.Stopped
+        to_return.job_status.current_job_execution_state = InformaticaJobExecutionStates.Completed
         for activity_monitor_entry in requests_response_jsonified:
             if activity_monitor_entry[DataFieldnameStrings.TaskId] == task_id_to_find:
                 to_return.job_status.current_job_execution_state = activity_monitor_entry['executionState']
