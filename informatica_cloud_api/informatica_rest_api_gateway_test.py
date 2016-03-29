@@ -2,7 +2,6 @@ import unittest
 import informatica_rest_api_gateway
 import requests
 from module_resources import GeneralConstants
-from module_resources import DataFieldnameStrings
 
 
 class LoginStrategyMock(informatica_rest_api_gateway.BaseStrategy):

@@ -2,11 +2,10 @@ class DataFieldnameStrings(object):
     UserName = 'username'
     Password = 'password'
     LoginEndpoint = 'login_endpoint'
-    SessionId = 'session_id'
+    ICSessionId = 'icSessionId'
     ServerUrl = 'server_url'
     TaskId = 'taskId'
     TaskType = 'taskType'
-    ICSessionId = 'icSessionId'
 
 
 class GeneralConstants(object):
