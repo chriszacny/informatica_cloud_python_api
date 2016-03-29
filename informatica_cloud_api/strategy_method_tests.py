@@ -68,28 +68,28 @@ class InformaticaRestAccessStrategyMethodTests(unittest.TestCase):
         expected_response = informatica_rest_api_gateway.JobRunStatusResponse()
         expected_response.response_ok = True
         expected_response.job_status.job_id = '1234'
-        expected_response.job_status.current_state = informatica_rest_api_gateway.InformaticaJobStates.Running
+        expected_response.job_status.current_job_execution_state = informatica_rest_api_gateway.InformaticaJobExecutionStates.Running
 
         json_test_data = [{u'scheduleName': u'Every Hour during Business Hours', u'startTime': u'2016-02-25T12:00:00.000Z', u'objectName': u'', u'executionState': u'RUNNING', u'successTargetRows': 0, u'id': u'0007LF0E00000001TIPR', u'runContextType': u'SCHEDULER', u'runId': 4557, u'taskId': u'1234', u'entries': [], u'successSourceRows': 0, u'taskName': u'Test Task', u'failedSourceRows': 0, u'type': u'WORKFLOW', u'@type': u'activityMonitoryEntry', u'failedTargetRows': 0}]
 
         actual_response = mock._process_response_json(json_test_data)
         self.assertEquals(expected_response.response_ok, actual_response.response_ok)
         self.assertEquals(expected_response.job_status.job_id, actual_response.job_status.job_id)
-        self.assertEquals(expected_response.job_status.current_state, actual_response.job_status.current_state)
+        self.assertEquals(expected_response.job_status.current_job_execution_state, actual_response.job_status.current_job_execution_state)
 
     def test_get_job_status_process_response_not_found_task_id(self):
         mock = informatica_rest_api_gateway.GetJobRunStatusStrategy({'taskId': '1234'})
         expected_response = informatica_rest_api_gateway.JobRunStatusResponse()
         expected_response.response_ok = True
         expected_response.job_status.job_id = '1234'
-        expected_response.job_status.current_state = informatica_rest_api_gateway.InformaticaJobStates.Stopped
+        expected_response.job_status.current_job_execution_state = informatica_rest_api_gateway.InformaticaJobExecutionStates.Stopped
 
         json_test_data = []
 
         actual_response = mock._process_response_json(json_test_data)
         self.assertEquals(expected_response.response_ok, actual_response.response_ok)
         self.assertEquals(expected_response.job_status.job_id, actual_response.job_status.job_id)
-        self.assertEquals(expected_response.job_status.current_state, actual_response.job_status.current_state)
+        self.assertEquals(expected_response.job_status.current_job_execution_state, actual_response.job_status.current_job_execution_state)
 
     def test_login_get_url_path(self):
         mock = informatica_rest_api_gateway.LoginStrategy({'login_endpoint': 'https://app.informaticaondemand.com/ma'})

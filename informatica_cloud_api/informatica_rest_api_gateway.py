@@ -16,15 +16,17 @@ class Payload(object):
         self.headers = {}
 
 
-class InformaticaJobStates(object):
-    Stopped = 1
-    Running = 2
+class InformaticaJobExecutionStates(object):
+    Stopped = 'STOPPED'
+    Running = 'RUNNING'
+    Initialized = 'INITIALIZED'
+    Stopping = 'STOPPING'
 
 
 class JobStatus(object):
     def __init__(self):
         self.job_id = None
-        self.current_state = None
+        self.current_job_execution_state = None
 
 
 class LoginData(object):
@@ -229,10 +231,10 @@ class GetJobRunStatusStrategy(BaseStrategy):
         to_return.response_ok = True
         task_id_to_find = self.data[DataFieldnameStrings.TaskId]
         to_return.job_status.job_id = task_id_to_find
-        to_return.job_status.current_state = InformaticaJobStates.Stopped
+        to_return.job_status.current_job_execution_state = InformaticaJobExecutionStates.Stopped
         for activity_monitor_entry in requests_response_jsonified:
-            if activity_monitor_entry[DataFieldnameStrings.TaskId] == task_id_to_find and (activity_monitor_entry['executionState'] == 'RUNNING' or activity_monitor_entry['executionState'] == 'INITIALIZED' or activity_monitor_entry['executionState'] == 'STOPPING'):
-                to_return.job_status.current_state = InformaticaJobStates.Running
+            if activity_monitor_entry[DataFieldnameStrings.TaskId] == task_id_to_find:
+                to_return.job_status.current_job_execution_state = activity_monitor_entry['executionState']
         return to_return
 
 

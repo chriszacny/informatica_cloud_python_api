@@ -1,37 +1,63 @@
 import unittest
 import informatica_rest_api_gateway
+import requests
+from module_resources import GeneralConstants
+from module_resources import DataFieldnameStrings
 
 
-class LoginStrategyMock(informatica_rest_api_gateway.LoginStrategy):
+class LoginStrategyMock(informatica_rest_api_gateway.BaseStrategy):
     def _do_http_request(self, payload):
-        pass
+        to_return = requests.Response()
+        to_return.status_code = GeneralConstants.HttpStatusOK
+        return to_return
+
+    def _process_requests_response(self, requests_response):
+        to_return = informatica_rest_api_gateway.LoginResponse()
+        to_return.login_data.login_session_id = 'zxcv1234'
+        to_return.login_data.login_server_url = 'https://www.fun.com'
+        to_return.response_ok = True
+        return to_return
 
 
-class LogoutStrategyMock(informatica_rest_api_gateway.LogoutStrategy):
+class LogoutStrategyMock(informatica_rest_api_gateway.BaseStrategy):
     def _do_http_request(self, payload):
-        pass
+        to_return = requests.Response()
+        to_return.status_code = GeneralConstants.HttpStatusOK
+        return to_return
 
 
-class StartJobStrategyMock(informatica_rest_api_gateway.StartJobStrategy):
+class StartJobStrategyMock(informatica_rest_api_gateway.BaseStrategy):
     def _do_http_request(self, payload):
-        pass
+        to_return = requests.Response()
+        to_return.status_code = GeneralConstants.HttpStatusOK
+        return to_return
 
 
-class StopJobStrategyMock(informatica_rest_api_gateway.StopJobStrategy):
+class StopJobStrategyMock(informatica_rest_api_gateway.BaseStrategy):
     def _do_http_request(self, payload):
-        pass
+        to_return = requests.Response()
+        to_return.status_code = GeneralConstants.HttpStatusOK
+        return to_return
 
 
-class GetJobRunStatusStrategyMock(informatica_rest_api_gateway.GetJobRunStatusStrategy):
+class GetJobRunStatusStrategyMock(informatica_rest_api_gateway.BaseStrategy):
     def _do_http_request(self, payload):
-        pass
+        to_return = requests.Response()
+        to_return.status_code = GeneralConstants.HttpStatusOK
+        return to_return
 
+    def _process_requests_response(self, requests_response):
+        to_return = informatica_rest_api_gateway.JobRunStatusResponse()
+        to_return.response_ok = True
+        to_return.job_status.job_id = '1234'
+        to_return.job_status.current_job_execution_state = informatica_rest_api_gateway.InformaticaJobExecutionStates.Running
+        return to_return
 
 informatica_rest_api_gateway.LoginStrategy = LoginStrategyMock
 informatica_rest_api_gateway.LogoutStrategy = LogoutStrategyMock
 informatica_rest_api_gateway.StartJobStrategy = StartJobStrategyMock
 informatica_rest_api_gateway.StopJobStrategy = StopJobStrategyMock
-informatica_rest_api_gateway.GetJobStatusStrategy = GetJobRunStatusStrategyMock
+informatica_rest_api_gateway.GetJobRunStatusStrategy = GetJobRunStatusStrategyMock
 
 
 class InformaticaRestAccessTest(unittest.TestCase):
@@ -68,4 +94,4 @@ class InformaticaRestAccessTest(unittest.TestCase):
         access.start_job('1234')
         status = access.get_job_run_status('1234')
         self.assertEquals(status.job_id, '1234')
-        self.assertEquals(status.current_state, informatica_rest_api_gateway.InformaticaJobStates.Running)
+        self.assertEquals(status.current_job_execution_state, informatica_rest_api_gateway.InformaticaJobExecutionStates.Running)
